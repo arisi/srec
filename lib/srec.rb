@@ -4,6 +4,7 @@
 require "pp"
 
 class Srec
+  attr_accessor :min,:max
   def initialize(hash={})
     if hash[:file]
       if not File.exist? hash[:file]
@@ -18,6 +19,8 @@ class Srec
     @lines=@data.split "\n"
     @mem={}
     @bytes=0
+    @min=nil
+    @max=nil
     @lines.each do |l|
       if l[0]=='S'
         type=l[1].to_i
@@ -42,6 +45,8 @@ class Srec
         @bytes+=b.size
         if [1,2,3].include? type
           @mem[addr]=b
+          @min=addr if not @min or addr<@min
+          @max=(addr+b.length) if not @max or addr+b.length>@max
         elsif [7,8,9].include? type
           @boot=b
         elsif type==0
@@ -51,8 +56,9 @@ class Srec
         end
       end
     end
-    puts "'#{@info}': #{@mem.length} Records, #{@bytes} Bytes"
+    puts "'#{@info}': #{@mem.length} Records, #{@bytes} Bytes [#{@min.to_s(16)}..#{@max.to_s(16)}]"
   end
+
   def to_blocks min,max,size
     blks={}
     @mem.each do |a,b|
@@ -69,5 +75,25 @@ class Srec
       end
     end
     blks
+  end
+
+  def self.diff b,b_old
+    todo={}
+    b.each do |k,v|
+      if b_old[k]
+        dc=0
+        v.each_with_index do |byte,i|
+          if byte!=b_old[k][i]
+            #printf "diff %d:%d %02X -- %02X\n",k,i,byte,b_old[k][i]
+            dc+=1
+          end
+        end
+        if dc==0
+          next
+        end
+      end
+      todo[k]=v
+    end
+    todo
   end
 end
