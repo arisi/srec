@@ -5,6 +5,7 @@ config/deploy.rb
 *.mp3
 *.rbc
 *.log
+*.srec
 .DS_Store
 *~
 c/mqtt-sn-pub
